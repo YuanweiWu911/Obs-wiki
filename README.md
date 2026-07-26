@@ -3,11 +3,12 @@ tools to build Obsidian wiki
 =======
 # pdf2markdown
 
-这个目录下包含 4 个 Python 脚本，用于完成论文 PDF 转 Markdown、英文论文翻译、知识总结生成，以及在代理环境下绕过代理访问 DeepSeek API。
+这个目录下包含 5 个 Python 脚本，用于完成论文 PDF 转 Markdown、扫描版 PDF OCR、英文论文翻译、知识总结生成，以及在代理环境下绕过代理访问 DeepSeek API。
 
 ## 目录说明
 
 - `pdf2markdown.py`：将 `./pdf/*.pdf` 转为 `./markdown/*.md`
+- `ocr_pdf2markdown.py`：将扫描版 PDF 逐页 OCR 后转为 `./markdown/*.md`
 - `en2cn.py`：将 `./markdown/*-en.md` 翻译为 `./markdown/*-cn.md`
 - `knowledge.py`：读取一对 `*-en.md` 和 `*-cn.md`，在 `./knowledge/` 下生成中英文知识总结
 - `run_without_proxy.py`：以“直连模式”启动其他脚本，绕过系统代理
@@ -27,6 +28,20 @@ pip install requests markitdown
 ```
 
 如果 `markitdown` 还依赖额外的 PDF 解析组件，请按你的本地环境补齐。
+
+如果要处理扫描版 PDF，建议额外安装一种 OCR 后端：
+
+```bash
+pip install rapidocr-onnxruntime
+```
+
+或者：
+
+```bash
+pip install pytesseract
+```
+
+如果使用 `pytesseract`，还需要另外安装 Tesseract OCR 可执行程序。
 
 ### 3. 设置 DeepSeek API Key
 
@@ -83,7 +98,34 @@ $env:DEEPSEEK_MODEL = "deepseek-v4-pro"
 python en2cn.py
 ```
 
-### 3. `knowledge.py`
+### 3. `ocr_pdf2markdown.py`
+
+作用：专门处理扫描版 PDF。它会先把 PDF 页面渲染成图片，再使用 OCR 识别文本，最后输出为 Markdown。
+
+运行方式：
+
+```powershell
+python ocr_pdf2markdown.py
+```
+
+只处理单个文件：
+
+```powershell
+python ocr_pdf2markdown.py "pdf\\07_yoderSecularVariationEarth1983a_yoder_1983_secular_variation_of_earth_s_gravitational_harmonic_j2_1.pdf"
+```
+
+指定 OCR 后端：
+
+```powershell
+python ocr_pdf2markdown.py --backend rapidocr
+```
+
+适用场景：
+
+- `pdf2markdown.py` 提取出来几乎全是空白、页眉、版权信息
+- 原 PDF 本质上是扫描图片，不是可选中文本
+
+### 4. `knowledge.py`
 
 作用：自动配对 `*-en.md` 和 `*-cn.md`，基于中英文双语内容提取知识点，并在 `./knowledge` 下生成：
 
@@ -100,7 +142,7 @@ python knowledge.py
 
 - `./markdown` 下已经有成对的 `*-en.md` 和 `*-cn.md`
 
-### 4. `run_without_proxy.py`
+### 5. `run_without_proxy.py`
 
 作用：绕过系统代理启动其他脚本。它会在子进程中：
 
@@ -140,6 +182,12 @@ python pdf2markdown.py
 
 - `./pdf/*.pdf`
 - 转成 `./markdown/*.md`
+
+如果遇到扫描版 PDF，改用：
+
+```powershell
+python ocr_pdf2markdown.py
+```
 
 ### 流程二：从英文 Markdown 到中文 Markdown
 
@@ -185,6 +233,14 @@ python run_without_proxy.py en2cn.py
 python run_without_proxy.py knowledge.py
 ```
 
+如果 PDF 是扫描件，则把第一步替换为：
+
+```powershell
+python ocr_pdf2markdown.py
+python run_without_proxy.py en2cn.py
+python run_without_proxy.py knowledge.py
+```
+
 ## 推荐用法
 
 如果你当前机器经常开代理，最稳妥的方式是：
@@ -211,6 +267,10 @@ python run_without_proxy.py knowledge.py
 
 - `paper-en.md` -> `paper-cn.md`
 
+### `ocr_pdf2markdown.py`
+
+- `paper.pdf` -> `paper-en.md` 或 `paper-cn.md`
+
 ### `knowledge.py`
 
 - `paper-en.md` + `paper-cn.md`
@@ -229,7 +289,15 @@ python run_without_proxy.py en2cn.py
 python run_without_proxy.py knowledge.py
 ```
 
-### 2. `HTTP 400` 提示模型名不支持
+### 2. `pdf2markdown.py` 提取结果只有版权页、页码或空白
+
+这通常说明 PDF 是扫描图片，不是文本层 PDF。请改用：
+
+```powershell
+python ocr_pdf2markdown.py
+```
+
+### 3. `HTTP 400` 提示模型名不支持
 
 当前接口只支持新版模型，建议使用默认值，或显式指定：
 
@@ -243,7 +311,7 @@ python run_without_proxy.py --model deepseek-v4-flash en2cn.py
 python run_without_proxy.py --model deepseek-v4-pro knowledge.py
 ```
 
-### 3. `knowledge.py` 提示找不到对应的 `-cn` 文件
+### 4. `knowledge.py` 提示找不到对应的 `-cn` 文件
 
 先确认 `./markdown` 中对应论文是否已经存在：
 
