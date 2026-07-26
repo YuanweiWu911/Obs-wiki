@@ -1,2 +1,267 @@
 # Obs-wiki
 tools to build Obsidian wiki
+=======
+# pdf2markdown
+
+这个目录下包含 4 个 Python 脚本，用于完成论文 PDF 转 Markdown、英文论文翻译、知识总结生成，以及在代理环境下绕过代理访问 DeepSeek API。
+
+## 目录说明
+
+- `pdf2markdown.py`：将 `./pdf/*.pdf` 转为 `./markdown/*.md`
+- `en2cn.py`：将 `./markdown/*-en.md` 翻译为 `./markdown/*-cn.md`
+- `knowledge.py`：读取一对 `*-en.md` 和 `*-cn.md`，在 `./knowledge/` 下生成中英文知识总结
+- `run_without_proxy.py`：以“直连模式”启动其他脚本，绕过系统代理
+
+## 前置条件
+
+### 1. Python
+
+建议使用 Python 3.10 及以上版本。
+
+### 2. 安装依赖
+
+至少需要安装：
+
+```bash
+pip install requests markitdown
+```
+
+如果 `markitdown` 还依赖额外的 PDF 解析组件，请按你的本地环境补齐。
+
+### 3. 设置 DeepSeek API Key
+
+`en2cn.py` 和 `knowledge.py` 都会读取环境变量 `ANTHROPIC_AUTH_TOKEN`：
+
+```powershell
+$env:ANTHROPIC_AUTH_TOKEN = "你的 DeepSeek API Key"
+```
+
+### 4. 可选环境变量
+
+- `DEEPSEEK_MODEL`
+  - 默认值：`deepseek-v4-flash`
+  - 可选：`deepseek-v4-pro`
+- `DEEPSEEK_PROXY_MODE`
+  - `auto`：优先继承系统代理，代理失败时回退直连
+  - `off`：完全不使用系统代理
+  - `on`：强制使用系统代理
+
+## 单独使用
+
+### 1. `pdf2markdown.py`
+
+作用：把 `./pdf` 目录中的 PDF 转成 Markdown，并根据文本内容自动判断中文/英文，输出为：
+
+- `xxx-cn.md`
+- `xxx-en.md`
+
+运行方式：
+
+```powershell
+python pdf2markdown.py
+```
+
+适用场景：
+
+- 你刚把新的 PDF 放进 `./pdf`
+- 你想先生成 Markdown，再决定是否翻译和总结
+
+### 2. `en2cn.py`
+
+作用：扫描 `./markdown` 下所有 `*-en.md`，调用 DeepSeek 翻译成 `*-cn.md`。如果对应中文文件已存在，会自动跳过。
+
+运行方式：
+
+```powershell
+python en2cn.py
+```
+
+指定模型：
+
+```powershell
+$env:DEEPSEEK_MODEL = "deepseek-v4-pro"
+python en2cn.py
+```
+
+### 3. `knowledge.py`
+
+作用：自动配对 `*-en.md` 和 `*-cn.md`，基于中英文双语内容提取知识点，并在 `./knowledge` 下生成：
+
+- `xxx_knowledge_cn.md`
+- `xxx_knowledge_en.md`
+
+运行方式：
+
+```powershell
+python knowledge.py
+```
+
+适用前提：
+
+- `./markdown` 下已经有成对的 `*-en.md` 和 `*-cn.md`
+
+### 4. `run_without_proxy.py`
+
+作用：绕过系统代理启动其他脚本。它会在子进程中：
+
+- 清除 `HTTP_PROXY`
+- 清除 `HTTPS_PROXY`
+- 清除 `ALL_PROXY`
+- 设置 `NO_PROXY=api.deepseek.com,deepseek.com`
+- 设置 `DEEPSEEK_PROXY_MODE=off`
+
+运行方式：
+
+```powershell
+python run_without_proxy.py en2cn.py
+```
+
+或者：
+
+```powershell
+python run_without_proxy.py knowledge.py
+```
+
+指定模型：
+
+```powershell
+python run_without_proxy.py --model deepseek-v4-pro en2cn.py
+```
+
+## 组合使用
+
+### 流程一：从 PDF 到 Markdown
+
+```powershell
+python pdf2markdown.py
+```
+
+结果：
+
+- `./pdf/*.pdf`
+- 转成 `./markdown/*.md`
+
+### 流程二：从英文 Markdown 到中文 Markdown
+
+如果本机网络环境可以直接访问 DeepSeek：
+
+```powershell
+python en2cn.py
+```
+
+如果系统代理会干扰 DeepSeek 访问，推荐使用：
+
+```powershell
+python run_without_proxy.py en2cn.py
+```
+
+### 流程三：从双语 Markdown 到知识总结
+
+确保已经有成对的 `*-en.md` 和 `*-cn.md` 后：
+
+```powershell
+python knowledge.py
+```
+
+如果需要绕过代理：
+
+```powershell
+python run_without_proxy.py knowledge.py
+```
+
+### 流程四：完整工作流
+
+这是最常见的完整处理链路：
+
+1. PDF 转 Markdown
+2. 英文 Markdown 翻译成中文
+3. 基于双语文档生成知识总结
+
+推荐命令：
+
+```powershell
+python pdf2markdown.py
+python run_without_proxy.py en2cn.py
+python run_without_proxy.py knowledge.py
+```
+
+## 推荐用法
+
+如果你当前机器经常开代理，最稳妥的方式是：
+
+```powershell
+python pdf2markdown.py
+python run_without_proxy.py en2cn.py
+python run_without_proxy.py knowledge.py
+```
+
+这样：
+
+- PDF 转换不依赖网络
+- 翻译和知识总结都自动绕过代理
+- 不需要每次手动删除环境变量
+
+## 输出文件规则
+
+### `pdf2markdown.py`
+
+- `paper.pdf` -> `paper-en.md` 或 `paper-cn.md`
+
+### `en2cn.py`
+
+- `paper-en.md` -> `paper-cn.md`
+
+### `knowledge.py`
+
+- `paper-en.md` + `paper-cn.md`
+- 在 `./knowledge/` 中生成：
+  - `paper_knowledge_cn.md`
+  - `paper_knowledge_en.md`
+
+## 常见问题
+
+### 1. `API 调用失败: ProxyError`
+
+说明系统代理干扰了 DeepSeek 访问。优先使用：
+
+```powershell
+python run_without_proxy.py en2cn.py
+python run_without_proxy.py knowledge.py
+```
+
+### 2. `HTTP 400` 提示模型名不支持
+
+当前接口只支持新版模型，建议使用默认值，或显式指定：
+
+```powershell
+python run_without_proxy.py --model deepseek-v4-flash en2cn.py
+```
+
+或：
+
+```powershell
+python run_without_proxy.py --model deepseek-v4-pro knowledge.py
+```
+
+### 3. `knowledge.py` 提示找不到对应的 `-cn` 文件
+
+先确认 `./markdown` 中对应论文是否已经存在：
+
+- `xxx-en.md`
+- `xxx-cn.md`
+
+如果只有英文文件，请先运行：
+
+```powershell
+python run_without_proxy.py en2cn.py
+```
+
+## 最短上手命令
+
+如果你只想记最少的命令，记住这一组就够了：
+
+```powershell
+python pdf2markdown.py
+python run_without_proxy.py en2cn.py
+python run_without_proxy.py knowledge.py
+```
