@@ -3,12 +3,12 @@ tools to build Obsidian wiki
 =======
 # pdf2markdown
 
-这个目录下包含 7 个 Python 脚本，用于完成论文 PDF 转 Markdown、扫描版 PDF OCR、英文论文翻译、知识总结生成、Obsidian LLM wiki 构建，以及基于 LLM 的自动 concept 质检。
+这个目录下包含 7 个 Python 脚本，用于完成论文 PDF 转 Markdown、扫描版 PDF OCR 回退、英文论文翻译、知识总结生成、Obsidian LLM wiki 构建，以及基于 LLM 的自动 concept 质检。
 
 ## 目录说明
 
-- `pdf2markdown.py`：将 `./pdf/*.pdf` 转为 `./markdown/*.md`
-- `ocr_pdf2markdown.py`：将扫描版 PDF 逐页 OCR 后转为 `./markdown/*.md`
+- `pdf2markdown.py`：将 `./pdf/*.pdf` 转为 `./markdown/*.md`，并自动识别图片型 PDF 后切换到 OCR
+- `ocr_pdf2markdown.py`：兼容旧用法的 OCR 包装器，内部会调用 `pdf2markdown.py --force-ocr`
 - `en2cn.py`：将 `./markdown/*-en.md` 翻译为 `./markdown/*-cn.md`
 - `knowledge.py`：读取一对 `*-en.md` 和 `*-cn.md`，在 `./knowledge/` 下生成中英文知识总结
 - `run_without_proxy.py`：以“直连模式”启动其他脚本，绕过系统代理
@@ -67,7 +67,7 @@ $env:ANTHROPIC_AUTH_TOKEN = "你的 DeepSeek API Key"
 
 ### 1. `pdf2markdown.py`
 
-作用：把 `./pdf` 目录中的 PDF 转成 Markdown，并根据文本内容自动判断中文/英文，输出为：
+作用：把 `./pdf` 目录中的 PDF 转成 Markdown，并根据文本内容自动判断中文/英文；如果检测到 PDF 基本没有可用文本层，脚本会自动切换到 OCR，输出为：
 
 - `xxx-cn.md`
 - `xxx-en.md`
@@ -78,9 +78,17 @@ $env:ANTHROPIC_AUTH_TOKEN = "你的 DeepSeek API Key"
 python pdf2markdown.py
 ```
 
+常用参数：
+
+```powershell
+python pdf2markdown.py --backend rapidocr
+python pdf2markdown.py --force-ocr
+```
+
 适用场景：
 
 - 你刚把新的 PDF 放进 `./pdf`
+- 你希望文本型 PDF 和扫描版 PDF 都统一走一个入口
 - 你想先生成 Markdown，再决定是否翻译和总结
 
 ### 2. `en2cn.py`
@@ -102,7 +110,7 @@ python en2cn.py
 
 ### 3. `ocr_pdf2markdown.py`
 
-作用：专门处理扫描版 PDF。它会先把 PDF 页面渲染成图片，再使用 OCR 识别文本，最后输出为 Markdown。
+作用：这是一个兼容旧命令的包装器。主逻辑已经合并进 `pdf2markdown.py`，它等价于强制执行 OCR 模式。
 
 运行方式：
 
@@ -124,8 +132,8 @@ python ocr_pdf2markdown.py --backend rapidocr
 
 适用场景：
 
-- `pdf2markdown.py` 提取出来几乎全是空白、页眉、版权信息
-- 原 PDF 本质上是扫描图片，不是可选中文本
+- 你已经习惯用旧命令
+- 你明确知道当前 PDF 就是扫描件，想直接强制走 OCR
 
 ### 4. `knowledge.py`
 
@@ -293,7 +301,7 @@ python run_without_proxy.py knowledge.py
 
 ### 2. `pdf2markdown.py` 提取结果只有版权页、页码或空白
 
-这通常说明 PDF 是扫描图片，不是文本层 PDF。请改用：
+这通常说明 PDF 是扫描图片，不是文本层 PDF。现在默认入口会自动回退到 OCR；如果你要显式强制 OCR，也可以执行：
 
 ```powershell
 python ocr_pdf2markdown.py

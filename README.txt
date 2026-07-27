@@ -1,8 +1,8 @@
 pdf2markdown
 
 This project contains tools for:
-- converting text-based PDFs to Markdown
-- converting scanned PDFs to Markdown via OCR
+- converting PDFs to Markdown with automatic OCR fallback
+- forcing scanned PDFs through OCR when needed
 - translating English Markdown into Chinese
 - generating bilingual knowledge summaries
 - building an Obsidian LLM wiki
@@ -11,13 +11,12 @@ This project contains tools for:
 
 Files
 - pdf2markdown.py
-  Convert text-based PDFs in ./pdf/ to Markdown files in ./markdown/
+  Convert PDFs in ./pdf/ to Markdown files in ./markdown/
+  Automatically detect image-based PDFs and switch to OCR when needed
 
 - ocr_pdf2markdown.py
-  Convert scanned PDFs in ./pdf/ to Markdown using OCR
-  Output files are written to ./markdown/
-  Preferred OCR backend: rapidocr_onnxruntime
-  Fallback OCR backend: pytesseract + Tesseract OCR executable
+  Compatibility wrapper that forces OCR mode through pdf2markdown.py
+  Useful when you already know the PDF is scanned
 
 - en2cn.py
   Translate ./markdown/*-en.md into ./markdown/*-cn.md
@@ -45,10 +44,13 @@ OCR Quick Start
 
 2. If using pytesseract, also install Tesseract OCR and make sure tesseract.exe is in PATH.
 
-3. Run OCR conversion:
+3. Run PDF conversion with automatic detection:
+   python pdf2markdown.py
+
+4. Force OCR conversion:
    python ocr_pdf2markdown.py
 
-4. Run OCR conversion for a single PDF:
+5. Run OCR conversion for a single PDF:
    python ocr_pdf2markdown.py "pdf\07_yoderSecularVariationEarth1983a_yoder_1983_secular_variation_of_earth_s_gravitational_harmonic_j2_1.pdf"
 
 Recommended Workflow
@@ -58,13 +60,13 @@ Recommended Workflow
    python run_without_proxy.py knowledge.py
 
 2. Scanned PDF:
-   python ocr_pdf2markdown.py
+   python pdf2markdown.py
    python run_without_proxy.py en2cn.py
    python run_without_proxy.py knowledge.py
 
 Notes
-- If pdf2markdown.py only extracts copyright lines, years, page numbers, or near-empty output,
-  the PDF is likely image-based and should be processed with ocr_pdf2markdown.py.
+- pdf2markdown.py now auto-detects image-based PDFs and falls back to OCR.
+- Use ocr_pdf2markdown.py only when you want to force OCR explicitly.
 - For more complete Markdown documentation, see README.md.
 
 Obsidian LLM Wiki
