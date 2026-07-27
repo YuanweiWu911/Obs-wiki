@@ -3,7 +3,7 @@ tools to build Obsidian wiki
 =======
 # pdf2markdown
 
-这个目录下包含 5 个 Python 脚本，用于完成论文 PDF 转 Markdown、扫描版 PDF OCR、英文论文翻译、知识总结生成，以及在代理环境下绕过代理访问 DeepSeek API。
+这个目录下包含 7 个 Python 脚本，用于完成论文 PDF 转 Markdown、扫描版 PDF OCR、英文论文翻译、知识总结生成、Obsidian LLM wiki 构建，以及基于 LLM 的自动 concept 质检。
 
 ## 目录说明
 
@@ -12,6 +12,8 @@ tools to build Obsidian wiki
 - `en2cn.py`：将 `./markdown/*-en.md` 翻译为 `./markdown/*-cn.md`
 - `knowledge.py`：读取一对 `*-en.md` 和 `*-cn.md`，在 `./knowledge/` 下生成中英文知识总结
 - `run_without_proxy.py`：以“直连模式”启动其他脚本，绕过系统代理
+- `build_obsidian_wiki.py`：构建和刷新 Obsidian LLM wiki
+- `review_concepts_with_llm.py`：用 DeepSeek 审查自动生成的 concepts，并缓存保留/删除决策
 
 ## 前置条件
 
@@ -333,3 +335,110 @@ python pdf2markdown.py
 python run_without_proxy.py en2cn.py
 python run_without_proxy.py knowledge.py
 ```
+
+## Obsidian LLM Wiki
+
+当前仓库现在也可以直接作为 Obsidian Vault 的数据源使用。
+
+### 目录角色
+
+- `pdf/`：原始 PDF
+- `markdown/`：英文/中文正文 Markdown
+- `knowledge/`：中英文知识总结
+- `notes/papers/`：每篇论文的聚合笔记
+- `concepts/`：概念卡片目录
+- `maps/`：导航页、Dataview 索引页、LLM 配置说明
+- `templates/`：中英双语模板
+- `.obsidian/`：Vault 基础配置
+
+### 一键生成 Vault 结构
+
+执行：
+
+```powershell
+python build_obsidian_wiki.py
+```
+
+它会自动：
+
+- 创建 `.obsidian/`
+- 创建 `notes/papers/`
+- 创建 `concepts/`
+- 创建 `maps/`
+- 创建 `templates/`
+- 为当前仓库中的全部论文生成 Obsidian 聚合笔记
+- 从 `knowledge/*.md` 自动提取基础概念，并生成 `concepts/*.md`
+- 使用 `review_concepts_with_llm.py` 审查自动生成概念，删除像 `SH`、参数符号、局部编号这类错误 concepts
+
+### 增量刷新与监听
+
+手动刷新一次：
+
+```powershell
+python build_obsidian_wiki.py
+```
+
+跳过 LLM concept 审查：
+
+```powershell
+python build_obsidian_wiki.py --skip-llm-concept-review
+```
+
+忽略审查缓存，强制重审：
+
+```powershell
+python build_obsidian_wiki.py --force-llm-concept-review
+```
+
+持续监听 `pdf/`、`markdown/`、`knowledge/` 的变化并自动刷新：
+
+```powershell
+python build_obsidian_wiki.py --watch
+```
+
+监听模式适合你在 Obsidian 开着的同时，持续生成或更新 `knowledge/*.md` 的场景。
+
+### 单独执行 concept 质检
+
+如果你只想检查自动生成的 concepts，而不重建整个 wiki，可以执行：
+
+```powershell
+python review_concepts_with_llm.py --show-dropped
+```
+
+审查结果会缓存到：
+
+- `.concept_review_state.json`
+- `.concept_review_blacklist.json`
+
+### 推荐工作流
+
+普通文本 PDF：
+
+```powershell
+python pdf2markdown.py
+python run_without_proxy.py en2cn.py
+python run_without_proxy.py knowledge.py
+python build_obsidian_wiki.py
+```
+
+扫描版 PDF：
+
+```powershell
+python ocr_pdf2markdown.py
+python run_without_proxy.py en2cn.py
+python run_without_proxy.py knowledge.py
+python build_obsidian_wiki.py
+```
+
+### 在 Obsidian 中使用
+
+1. 直接用 Obsidian 打开 `d:\ywwu_workspace\pdf2markdown`
+2. 将 `maps/Home.md` 作为入口页
+3. 安装社区插件：
+   - Dataview
+   - Templater
+   - PDF++
+   - Smart Connections
+   - Copilot
+4. 按 `maps/LLM Setup.md` 中的说明接入 DeepSeek API

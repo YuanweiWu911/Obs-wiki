@@ -1,4 +1,14 @@
 pdf/
 markdown/
 knowledge/
+.obsidian/
+.smart-env/
+.trae/
+maps/
+notes/
+templates/
+copilot/
+concepts/
 __pycache__/
+.concept_review_state.json
+.concept_review_blacklist.json
