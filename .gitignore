@@ -12,3 +12,5 @@ concepts/
 __pycache__/
 .concept_review_state.json
 .concept_review_blacklist.json
+未命名.base
+未命名.canvas
