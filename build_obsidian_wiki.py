@@ -320,6 +320,51 @@ def build_note_content(base_name: str, record: dict[str, str], concepts: list[st
     return content
 
 
+def replace_or_prepend_auto_block(body: str, auto_block: str) -> str:
+    body = body.lstrip("\n")
+    if AUTO_START in body and AUTO_END in body:
+        start_index = body.index(AUTO_START)
+        end_index = body.index(AUTO_END) + len(AUTO_END)
+        before = body[:start_index].rstrip()
+        after = body[end_index:].lstrip("\n")
+
+        parts: list[str] = []
+        if before:
+            parts.append(before)
+        parts.append(auto_block.rstrip())
+        if after:
+            parts.append(after.rstrip())
+        return "\n\n".join(parts) + "\n"
+
+    if not body:
+        return auto_block.rstrip() + "\n"
+
+    return auto_block.rstrip() + "\n\n" + body.rstrip() + "\n"
+
+
+def build_knowledge_auto_block(base_name: str, record: dict[str, str]) -> str:
+    lines = [
+        AUTO_START,
+        f"# {base_name}",
+        "",
+        "## Sources / 原始资料",
+        format_link("PDF", "pdf", record["pdf"]),
+        f"- Paper Note: {format_note_link('notes/papers', base_name, base_name)}",
+        "",
+        AUTO_END,
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def build_knowledge_content(base_name: str, record: dict[str, str], existing_text: str = "") -> str:
+    auto_block = build_knowledge_auto_block(base_name, record)
+    content = replace_or_prepend_auto_block(existing_text, auto_block)
+    if not content.endswith("\n"):
+        content += "\n"
+    return content
+
+
 def write_paper_notes(
     records: dict[str, dict[str, str]],
     paper_concepts: dict[str, list[str]],
@@ -342,6 +387,32 @@ def write_paper_notes(
         concepts = paper_concepts.get(base_name, [])
         content = build_note_content(base_name, record, concepts, existing_text)
         write_text_if_changed(note_path, content)
+
+
+def write_knowledge_links(
+    records: dict[str, dict[str, str]],
+    target_bases: set[str] | None = None,
+):
+    bases = sorted(target_bases) if target_bases else sorted(records)
+    for base_name in bases:
+        record = records.get(
+            base_name,
+            {
+                "pdf": "",
+                "en_markdown": "",
+                "cn_markdown": "",
+                "knowledge_cn": "",
+                "knowledge_en": "",
+            },
+        )
+        for key in ["knowledge_cn", "knowledge_en"]:
+            file_name = record[key]
+            if not file_name:
+                continue
+            knowledge_path = KNOWLEDGE_DIR / file_name
+            existing_text = knowledge_path.read_text(encoding="utf-8") if knowledge_path.exists() else ""
+            content = build_knowledge_content(base_name, record, existing_text)
+            write_text_if_changed(knowledge_path, content)
 
 
 def load_text(path: Path) -> str:
@@ -952,6 +1023,7 @@ def build_wiki(
             print(f"跳过 LLM concept 审查: {exc}")
 
     write_concept_notes(concept_inventory)
+    write_knowledge_links(records, target_bases=target_bases)
     if target_bases:
         write_paper_notes(records, paper_concepts, target_bases=target_bases)
         if removed_by_llm:
