@@ -287,6 +287,13 @@ def parse_args(force_ocr_default: bool = False) -> argparse.Namespace:
         default=force_ocr_default,
         help="无论 PDF 是否有文本层，都强制使用 OCR。",
     )
+    parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        default=False,
+        help="即使 markdown 输出文件已存在，也强制重新转换。",
+    )
     return parser.parse_args()
 
 
@@ -302,6 +309,26 @@ def main(force_ocr_default: bool = False) -> int:
 
     if not pdf_paths:
         print(f"未找到待处理的 PDF 文件: {PDF_DIR}")
+        return 0
+
+    if not args.force:
+        skipped: list[str] = []
+        pending: list[Path] = []
+        for pdf_path in pdf_paths:
+            en_out = OUTPUT_DIR / f"{pdf_path.stem}-en.md"
+            if en_out.exists():
+                skipped.append(pdf_path.name)
+            else:
+                pending.append(pdf_path)
+        if skipped:
+            print(f"跳过 {len(skipped)} 个已有输出文件的 PDF (使用 --force 强制转换):")
+            for name in skipped:
+                print(f"  - {name}")
+            print()
+        pdf_paths = pending
+
+    if not pdf_paths:
+        print("所有 PDF 均已有输出文件，无需转换。")
         return 0
 
     converter = MarkItDown()

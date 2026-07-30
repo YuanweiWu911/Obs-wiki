@@ -1,0 +1,35 @@
+
+基于提供的知识库，我凝练了以下三个前沿且具有潜在高影响力的研究课题，它们都紧密围绕着地球自转变化的多尺度机制：
+
+### 研究课题一：亚十年至十年际地球自转变化的分层激发与耦合机制——内核、外核与核幔边界
+
+**拟解决的关键科学问题：**
+1.  **不同时间尺度的主导机制如何分离与鉴别？** LOD (日长) 变化在亚十年尺度上存在约6年的阻尼振荡和约8.6年的增长振荡[[10_duanIntradecadalVariationsLength2020_duan_2020_intradecadal_variations_in_length_of_day_and_their_1_knowledge_cn]]，它们分别与内核-地幔引力耦合和外核扭转波有关。如何利用最新的高精度空间大地测量和地磁卫星数据，更清晰地分离并物理归因于这些重叠的信号？
+2.  **内核旋转反转的动力学原因及其对LOD的贡献？** 地震学证据表明内核在~2008年经历了旋转反转[[46_wangInnerCoreBacktracking2024a_wang_2024_inner_core_backtracking_by_seismic_waveform_change_reversals_1_knowledge_cn]]。这个反转事件在多大程度上影响了观测到的十年际LOD变化？它是否由外核的电磁力矩或地幔的引力力矩驱动[[45_yangMultidecadalVariationEarth2023_yang_2023_multidecadal_variation_of_the_earth_s_inner_core_1_knowledge_cn]]？
+3.  **核幔边界稳定分层层中的MAC波如何统一解释多源观测？** 外核顶部的稳定分层层中的MAC波可以解释约60年的地磁和LOD波动[[09_buffettGeomagneticFluctuationsReveal2014_knowledge_cn]]。能否构建一个自洽的动力学模型，同时拟合该MAC波对地球自转、地磁长期变化和核表面流体流动的预测？
+
+**研究思路：**
+*   **多源数据联合反演**：联合分析IERS的LOD数据、Swarm等卫星的高精度地磁场模型（如COV-OBS.x2 [[36_huderCOVOBSx2180Years2020_huder_2020_cov_obs_x2_180_years_of_geomagnetic_field_1_knowledge_cn]]），以及地震学对内核旋转速率的约束，进行跨学科的联合反演。
+*   **先进信号处理与模拟**：应用归一化Morlet小波变换（NMWT）[[10_duanIntradecadalVariationsLength2020_duan_2020_intradecadal_variations_in_length_of_day_and_their_1_knowledge_cn]]或经验模态分解（EMD）[[08_robertsOn60yearSignal2007_roberts_2007_on_the_60_year_signal_from_the_core_1_knowledge_cn]]来精确提取不同时间尺度的信号。并结合地球发电机数值模拟，重现观测到的多尺度波动及其耦合过程[[19_buffettGravitationalBrakingInnercore2000_buffett_2000_gravitational_braking_of_inner_core_rotation_in_geodynamo_1_knowledge_cn]]。
+
+### 研究课题二：地核-地幔角动量的数十年调制与地表气候系统的耦合机制
+
+**拟解决的关键科学问题：**
+1.  **~70年调制周期的决定性验证**：LOD、地磁场和内核旋转均存在约70年的信号[[Zewen_Zhang-AnApproximately70-YearCore-RelatedModulationofEarthRotationandItsImplicationsfortheLeap_knowledge_cn, 45_yangMultidecadalVariationEarth2023_yang_2023_multidecadal_variation_of_the_earth_s_inner_core_1_knowledge_cn]]。这个信号是地球深部系统的一个固有、稳定的特征，还是间歇性、瞬态的波动？该信号在更长的时间尺度上（如基于古希腊日食记录 [[49_stephensonMeasurementEarthRotation2016_stephenson_2016_measurement_of_the_earth_s_rotation_720_bc_1_knowledge_cn]] 延长的数据）是否依然存在？
+2.  **角动量从内核到地表的传输物理链条是什么？** 内核与外核的电磁耦合、外核与地幔的多种核幔耦合（电磁、地形、引力）[[44_moundMechanismsCoreMantle2005_mound_2005_mechanisms_of_core_mantle_angular_momentum_exchange_and_1_knowledge_cn]]，如何构成了一个高效的角动量传输链条？为何地表气候指标（如全球平均温度、海平面）似乎与这个深部过程存在相关性[[45_yangMultidecadalVariationEarth2023_yang_2023_multidecadal_variation_of_the_earth_s_inner_core_1_knowledge_cn]]？
+3.  **未来地球自转趋势预测与闰秒评估**：基于深部过程的物理模型，能否提供比纯统计模型（如LS+AR, [[GEOG-D-26-00153_reviewer_knowledge_cn]]）更准确、物理上更一致的地球自转长周期预报，从而为未来的正/负闰秒决策提供更坚实的基础？
+
+**研究思路：**
+*   **超长时间基准构建**：将现代高精度空间大地测量与历史天文记录（如Stephenson的LOD序列 [[49_stephensonMeasurementEarthRotation2016_stephenson_2016_measurement_of_the_earth_s_rotation_720_bc_1_knowledge_cn]]）深度融合，构建一个从公元前720年至今超过2700年的LOD超长序列，对其进行时频分析以寻找稳定的~70年调制信号。
+*   **物理驱动的预测模型**：开发结合地核动力学（来自模拟或简化的物理模型）和表层激发（AAM/OAM/HAM）的混合预报模型，评估其在10-30天中长期预报中对IERS公告A的改进潜力。
+
+### 研究课题三：冰川均衡调整与极地冰盖融化对21世纪地球自转的非线性驱动
+
+**拟解决的关键科学问题：**
+1.  **现代极移加速的来源分离**：GRACE卫星数据表明，2002年之后极移突然加速 [[04_zotovAnalysisEarthPolar2022_zotov_2022_analysis_of_earth_s_polar_motion_and_length_1_knowledge_cn]]。其中，格陵兰/南极冰盖加速融化、山地冰川萎缩、陆地水储量变化以及GIA [[05_mitrovicaReconcilingChangesEarth2015_mitrovica_2015_reconciling_past_changes_in_earth_s_rotation_with_1_knowledge_cn]] 对这一加速趋势的相对贡献分别是多少？我们能否利用极移观测来独立约束全球陆地冰流失总量？
+2.  **J₂趋势反转的精细解释**：地球动力学扁率项（J₂）在~2000年从长期下降转为上升 [[04_zotovAnalysisEarthPolar2022_zotov_2022_analysis_of_earth_s_polar_motion_and_length_1_knowledge_cn]]。GIA、冰盖消融和地震位错 [[20_chaoGravitationalEnergyAssociated2014_chao_2014_on_the_gravitational_energy_associated_with_earth_s_1_knowledge_cn]] 这三种机制如何精确解释J₂趋势反转的幅度和时间点？这种反转对应的引力能量释放速率（~200 GW）对地球内部能量预算有何意义 [[20_chaoGravitationalEnergyAssociated2014_chao_2014_on_the_gravitational_energy_associated_with_earth_s_1_knowledge_cn]] ？
+3.  **固体潮耗散与长期自转减慢的再评估**：结合最新的海洋潮汐模型（如基于T/P测高数据的改进模型）和卫星重力数据，我们是否能更精确地测定固体地球的品质因子Q，并解决“Munk谜题”中的最后残差 [[12_rayDetectionTidalDissipation1996_ray_1996_detection_of_tidal_dissipation_in_the_solid_earth_1_knowledge_cn, 05_mitrovicaReconcilingChangesEarth2015_mitrovica_2015_reconciling_past_changes_in_earth_s_rotation_with_1_knowledge_cn]] ？
+
+**研究思路：**
+*   **统一预算闭合**：建立一个包含GIA、冰盖、冰川、水文和大气/海洋在内的综合角动量预算模型。通过吉布斯采样等贝叶斯反演方法，联合拟合J₂、极移速率、LOD长期趋势和验潮站/卫星测高海平面数据，以获得自洽的物理源项估计值。
+*   **过程分解与指纹识别**：对GRACE和GRACE-FO的重力场数据进行深度挖掘，利用质量球谐系数（如C₂₁, S₂₁）直接计算激发函数 [[04_zotovAnalysisEarthPolar2022_zotov_2022_analysis_of_earth_s_polar_motion_and_length_1_knowledge_cn]]，从而将极移激发与特定地理区域（如格林兰 [[16_greeneUbiquitousAccelerationGreenland2024_greene_2024_ubiquitous_acceleration_in_greenland_ice_sheet_calving_from_1_knowledge_cn]] ）的质量变化联系起来，实现对各冰盖融化贡献的独立“指纹”识别。
