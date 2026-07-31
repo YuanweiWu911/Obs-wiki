@@ -158,6 +158,17 @@ def resolve_inputs(raw_inputs: list[str]) -> list[Path]:
     return pdf_paths
 
 
+def resolve_cli_inputs(raw_inputs: list[str], single_input: str | None) -> list[Path]:
+    """兼容位置参数和 --input，统一得到待处理文件列表。"""
+    if single_input and raw_inputs:
+        raise ValueError("请使用位置参数或 --input 二选一，不要同时指定。")
+
+    if single_input:
+        return resolve_inputs([single_input])
+
+    return resolve_inputs(raw_inputs)
+
+
 def sample_page_indices(page_count: int, max_pages: int = TEXT_LAYER_SAMPLE_PAGES) -> list[int]:
     """均匀抽样若干页，用于判断是否存在可用文本层。"""
     if page_count <= 0:
@@ -270,6 +281,10 @@ def parse_args(force_ocr_default: bool = False) -> argparse.Namespace:
         help="要处理的 PDF 文件路径；留空时默认处理 ./pdf/*.pdf",
     )
     parser.add_argument(
+        "--input",
+        help="指定单个 PDF 文件作为输入。",
+    )
+    parser.add_argument(
         "--backend",
         choices=["auto", "rapidocr", "tesseract"],
         default="auto",
@@ -302,7 +317,7 @@ def main(force_ocr_default: bool = False) -> int:
     OUTPUT_DIR.mkdir(exist_ok=True)
 
     try:
-        pdf_paths = resolve_inputs(args.inputs)
+        pdf_paths = resolve_cli_inputs(args.inputs, args.input)
     except Exception as exc:
         print(f"错误: {exc}")
         return 1

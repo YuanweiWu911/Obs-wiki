@@ -2,6 +2,7 @@
 论文 Markdown 翻译脚本
 读取 ./markdown/*.md，翻译为中文，输出 ./markdown/*-cn.md
 """
+import argparse
 import os
 import re
 import threading
@@ -118,14 +119,45 @@ def call_api(system_prompt: str, user_content: str, retries: int = 3) -> str:
                 raise
 
 
-def translate_file(md_path: Path):
-    """翻译单个 markdown 文件（多线程并发）。"""
-    # 将 *-en.md 翻译为 *-cn.md
+def resolve_input_files(single_input: str | None) -> list[Path]:
+    """解析命令行输入，返回待翻译文件列表。"""
+    if single_input:
+        md_path = Path(single_input)
+        if not md_path.exists():
+            raise FileNotFoundError(f"输入文件不存在: {md_path}")
+        return [md_path]
+
+    return sorted(INPUT_DIR.glob("*-en.md"))
+
+
+def get_output_path(md_path: Path) -> Path:
+    """根据输入 Markdown 计算中文输出文件路径。"""
     base = md_path.stem
     if base.endswith("-en"):
         base = base[:-3]
-    out_path = md_path.parent / f"{base}{OUTPUT_SUFFIX}.md"
-    if out_path.exists():
+    return md_path.parent / f"{base}{OUTPUT_SUFFIX}.md"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="读取 Markdown 并翻译为中文版本。")
+    parser.add_argument(
+        "--input",
+        help="指定单个 Markdown 文件作为输入。",
+    )
+    parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        default=False,
+        help="不检查输出是否已存在，强制重新翻译。",
+    )
+    return parser.parse_args()
+
+
+def translate_file(md_path: Path, force: bool = False):
+    """翻译单个 markdown 文件（多线程并发）。"""
+    out_path = get_output_path(md_path)
+    if out_path.exists() and not force:
         print(f"  跳过（已存在）: {out_path.name}")
         return
 
@@ -153,15 +185,23 @@ def translate_file(md_path: Path):
 
 
 def main():
+    args = parse_args()
+
     if not API_KEY:
         print("错误: 请设置环境变量 ANTHROPIC_AUTH_TOKEN")
         return
 
-    # 只翻译 *-en.md，跳过 *-cn.md，且已有对应 -cn 翻译的也跳过
-    md_files = [
-        f for f in INPUT_DIR.glob("*-en.md")
-        if not (INPUT_DIR / f"{f.stem[:-3]}-cn.md").exists()
-    ]
+    try:
+        md_files = resolve_input_files(args.input)
+    except Exception as exc:
+        print(f"错误: {exc}")
+        return
+
+    if not args.force:
+        md_files = [
+            f for f in md_files
+            if not get_output_path(f).exists()
+        ]
     if not md_files:
         print(f"未找到待翻译的 *-en.md 文件: {INPUT_DIR}")
         return
@@ -169,7 +209,7 @@ def main():
     print(f"找到 {len(md_files)} 个文件待翻译\n")
     for md_path in md_files:
         print(f"翻译: {md_path.name}")
-        translate_file(md_path)
+        translate_file(md_path, force=args.force)
         print()
 
     print("全部完成。")

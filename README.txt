@@ -13,6 +13,7 @@ Files
 - pdf2markdown.py
   Convert PDFs in ./pdf/ to Markdown files in ./markdown/
   Automatically detect image-based PDFs and switch to OCR when needed
+  Supports --input for a single PDF and --force to skip output existence checks
 
 - ocr_pdf2markdown.py
   Compatibility wrapper that forces OCR mode through pdf2markdown.py
@@ -20,10 +21,12 @@ Files
 
 - en2cn.py
   Translate ./markdown/*-en.md into ./markdown/*-cn.md
+  Supports --input for a single Markdown file and --force to overwrite existing translations
 
 - knowledge.py
   Read paired *-en.md and *-cn.md files from ./markdown/
   Write bilingual knowledge summaries to ./knowledge/
+  Supports --input for a single paired paper and --force to regenerate existing summaries
 
 - run_without_proxy.py
   Launch other scripts with HTTP_PROXY / HTTPS_PROXY / ALL_PROXY removed
@@ -47,6 +50,12 @@ OCR Quick Start
 3. Run PDF conversion with automatic detection:
    python pdf2markdown.py
 
+   Run a single PDF:
+   python pdf2markdown.py --input ".\pdf\paper.pdf"
+
+   Force re-run even when Markdown output already exists:
+   python pdf2markdown.py --input ".\pdf\paper.pdf" --force
+
 4. Force OCR conversion:
    python ocr_pdf2markdown.py
 
@@ -68,6 +77,11 @@ Notes
 - pdf2markdown.py now auto-detects image-based PDFs and falls back to OCR.
 - Use ocr_pdf2markdown.py only when you want to force OCR explicitly.
 - For more complete Markdown documentation, see README.md.
+- Single-file examples:
+  - python en2cn.py --input ".\markdown\paper-en.md"
+  - python en2cn.py --input ".\markdown\paper-en.md" --force
+  - python knowledge.py --input ".\markdown\paper-en.md"
+  - python knowledge.py --input ".\markdown\paper-en.md" --force
 
 Obsidian LLM Wiki
 - This repository can now also work as an Obsidian Vault data source.

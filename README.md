@@ -81,8 +81,10 @@ python pdf2markdown.py
 常用参数：
 
 ```powershell
+python pdf2markdown.py --input ".\pdf\paper.pdf"
 python pdf2markdown.py --backend rapidocr
 python pdf2markdown.py --force-ocr
+python pdf2markdown.py --input ".\pdf\paper.pdf" --force
 ```
 
 适用场景：
@@ -93,12 +95,24 @@ python pdf2markdown.py --force-ocr
 
 ### 2. `en2cn.py`
 
-作用：扫描 `./markdown` 下所有 `*-en.md`，调用 DeepSeek 翻译成 `*-cn.md`。如果对应中文文件已存在，会自动跳过。
+作用：扫描 `./markdown` 下所有 `*-en.md`，调用 DeepSeek 翻译成 `*-cn.md`。如果对应中文文件已存在，会自动跳过；使用 `--force` 时可强制重翻。
 
 运行方式：
 
 ```powershell
 python en2cn.py
+```
+
+只处理单个文件：
+
+```powershell
+python en2cn.py --input ".\markdown\paper-en.md"
+```
+
+强制重翻：
+
+```powershell
+python en2cn.py --input ".\markdown\paper-en.md" --force
 ```
 
 指定模型：
@@ -146,6 +160,24 @@ python ocr_pdf2markdown.py --backend rapidocr
 
 ```powershell
 python knowledge.py
+```
+
+只处理单篇论文：
+
+```powershell
+python knowledge.py --input ".\markdown\paper-en.md"
+```
+
+或：
+
+```powershell
+python knowledge.py --input ".\markdown\paper-cn.md"
+```
+
+强制重建知识总结：
+
+```powershell
+python knowledge.py --input ".\markdown\paper-en.md" --force
 ```
 
 适用前提：
@@ -272,10 +304,14 @@ python run_without_proxy.py knowledge.py
 ### `pdf2markdown.py`
 
 - `paper.pdf` -> `paper-en.md` 或 `paper-cn.md`
+- 支持 `--input` 指定单个 PDF
+- 支持 `--force` 跳过已有输出检查，强制重新转换
 
 ### `en2cn.py`
 
 - `paper-en.md` -> `paper-cn.md`
+- 支持 `--input` 指定单个英文 Markdown
+- 支持 `--force` 即使 `paper-cn.md` 已存在也重新翻译
 
 ### `ocr_pdf2markdown.py`
 
@@ -287,6 +323,8 @@ python run_without_proxy.py knowledge.py
 - 在 `./knowledge/` 中生成：
   - `paper_knowledge_cn.md`
   - `paper_knowledge_en.md`
+- 支持 `--input` 指定单个 `paper-en.md` 或 `paper-cn.md`
+- 支持 `--force` 即使知识总结已存在也重新生成
 
 ## 常见问题
 

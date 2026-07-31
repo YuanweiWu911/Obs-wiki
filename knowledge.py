@@ -2,6 +2,7 @@
 论文知识点梳理脚本
 同时读取 ./markdown/*.md 和 ./markdown/*-cn.md，生成中英文双版本知识总结到 ./knowledge/。
 """
+import argparse
 import os
 import re
 import threading
@@ -144,6 +145,22 @@ def normalize_doc_stem(stem: str) -> str:
     if stem.endswith("-en") or stem.endswith("-cn"):
         return stem[:-3]
     return stem
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="读取中英文 Markdown，生成知识总结。")
+    parser.add_argument(
+        "--input",
+        help="指定单个 Markdown 文件作为输入，并自动查找对应的中英文配对文件。",
+    )
+    parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        default=False,
+        help="不检查知识总结输出是否已存在，强制重新生成。",
+    )
+    return parser.parse_args()
 
 
 def split_markdown(text: str, max_chars: int = 4000) -> list[str]:
@@ -289,15 +306,55 @@ def aggregate_knowledge(raw_knowledge: str, lang: str) -> str:
     return result
 
 
-def process_pair(en_path: Path, cn_path: Path):
+def resolve_pairs(single_input: str | None) -> list[tuple[Path, Path]]:
+    """解析命令行输入，返回待处理的中英文文件对。"""
+    if single_input:
+        input_path = Path(single_input)
+        if not input_path.exists():
+            raise FileNotFoundError(f"输入文件不存在: {input_path}")
+
+        base_name = normalize_doc_stem(input_path.stem)
+        en_path = input_path.parent / f"{base_name}-en.md"
+        cn_path = input_path.parent / f"{base_name}-cn.md"
+
+        missing = [path for path in (en_path, cn_path) if not path.exists()]
+        if missing:
+            raise FileNotFoundError(
+                "以下配对文件不存在:\n" + "\n".join(str(path) for path in missing)
+            )
+
+        return [(en_path, cn_path)]
+
+    en_files = {
+        normalize_doc_stem(f.stem): f
+        for f in INPUT_DIR.glob("*-en.md")
+        if "knowledge" not in f.stem
+    }
+    cn_files = {
+        normalize_doc_stem(f.stem): f
+        for f in INPUT_DIR.glob("*-cn.md")
+        if "knowledge" not in f.stem
+    }
+
+    pairs = []
+    for stem, en_path in en_files.items():
+        if stem in cn_files:
+            pairs.append((en_path, cn_files[stem]))
+        else:
+            print(f"警告: {en_path.name} 未找到对应的 -cn 翻译文件")
+
+    return pairs
+
+
+def process_pair(en_path: Path, cn_path: Path, force: bool = False):
     """处理一对英文原文+中文翻译，生成中英文双版本知识总结。"""
     base_name = normalize_doc_stem(en_path.stem)
     out_cn = OUTPUT_DIR / f"{base_name}_knowledge_cn.md"
     out_en = OUTPUT_DIR / f"{base_name}_knowledge_en.md"
 
     # 增量跳过：两个输出都已存在则跳过
-    skip_cn = out_cn.exists()
-    skip_en = out_en.exists()
+    skip_cn = out_cn.exists() and not force
+    skip_en = out_en.exists() and not force
     if skip_cn and skip_en:
         print(f"  跳过（已存在）: {out_cn.name}, {out_en.name}")
         return
@@ -325,27 +382,17 @@ def process_pair(en_path: Path, cn_path: Path):
 
 
 def main():
+    args = parse_args()
+
     if not API_KEY:
         print("错误: 请设置环境变量 ANTHROPIC_AUTH_TOKEN")
         return
 
-    en_files = {
-        normalize_doc_stem(f.stem): f
-        for f in INPUT_DIR.glob("*-en.md")
-        if "knowledge" not in f.stem
-    }
-    cn_files = {
-        normalize_doc_stem(f.stem): f
-        for f in INPUT_DIR.glob("*-cn.md")
-        if "knowledge" not in f.stem
-    }
-
-    pairs = []
-    for stem, en_path in en_files.items():
-        if stem in cn_files:
-            pairs.append((en_path, cn_files[stem]))
-        else:
-            print(f"警告: {en_path.name} 未找到对应的 -cn 翻译文件")
+    try:
+        pairs = resolve_pairs(args.input)
+    except Exception as exc:
+        print(f"错误: {exc}")
+        return
 
     if not pairs:
         print("未找到可处理的文件对")
@@ -354,7 +401,7 @@ def main():
     print(f"找到 {len(pairs)} 个文件对\n")
     for en_path, cn_path in pairs:
         print(f"处理: {en_path.name}")
-        process_pair(en_path, cn_path)
+        process_pair(en_path, cn_path, force=args.force)
         print()
 
     print("全部完成。")
