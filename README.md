@@ -8,8 +8,10 @@ tools to build Obsidian wiki
 ## 目录说明
 
 - `pdf2markdown.py`：将 `./pdf/*.pdf` 转为 `./markdown/*.md`，并自动识别图片型 PDF 后切换到 OCR
+- `pdf2html.py`：将 `./pdf/*.pdf` 转为 `./html/*.html`，并生成 `out.html` 索引页
 - `ocr_pdf2markdown.py`：兼容旧用法的 OCR 包装器，内部会调用 `pdf2markdown.py --force-ocr`
 - `en2cn.py`：将 `./markdown/*-en.md` 翻译为 `./markdown/*-cn.md`
+- `review_cn_markdown.py`：检查 `./markdown/*-cn.md` 中的语法问题和错别字，并生成 `./report/*-cn-review-report.md`
 - `knowledge.py`：读取一对 `*-en.md` 和 `*-cn.md`，在 `./knowledge/` 下生成中英文知识总结
 - `run_without_proxy.py`：以“直连模式”启动其他脚本，绕过系统代理
 - `build_obsidian_wiki.py`：构建和刷新 Obsidian LLM wiki
@@ -82,6 +84,7 @@ python pdf2markdown.py
 
 ```powershell
 python pdf2markdown.py --input ".\pdf\paper.pdf"
+python pdf2markdown.py --input ".\pdf\paper.pdf" --start 1 --end 3
 python pdf2markdown.py --backend rapidocr
 python pdf2markdown.py --force-ocr
 python pdf2markdown.py --input ".\pdf\paper.pdf" --force
@@ -122,7 +125,35 @@ $env:DEEPSEEK_MODEL = "deepseek-v4-pro"
 python en2cn.py
 ```
 
-### 3. `ocr_pdf2markdown.py`
+### 3. `pdf2html.py`
+
+作用：将 `./pdf` 下的 PDF 转为 `./html/*.html`，并生成 `out.html` 作为浏览索引页。若对应 HTML 已存在，会自动跳过；使用 `--force` 时可强制重转。
+
+运行方式：
+
+```powershell
+python pdf2html.py
+```
+
+只处理单个文件：
+
+```powershell
+python pdf2html.py --input ".\pdf\paper.pdf"
+```
+
+只转换指定页码范围：
+
+```powershell
+python pdf2html.py --input ".\pdf\paper.pdf" --start 1 --end 3
+```
+
+强制重转：
+
+```powershell
+python pdf2html.py --input ".\pdf\paper.pdf" --force
+```
+
+### 4. `ocr_pdf2markdown.py`
 
 作用：这是一个兼容旧命令的包装器。主逻辑已经合并进 `pdf2markdown.py`，它等价于强制执行 OCR 模式。
 
@@ -149,7 +180,31 @@ python ocr_pdf2markdown.py --backend rapidocr
 - 你已经习惯用旧命令
 - 你明确知道当前 PDF 就是扫描件，想直接强制走 OCR
 
-### 4. `knowledge.py`
+### 5. `review_cn_markdown.py`
+
+作用：扫描 `./markdown` 下所有 `*-cn.md`，调用 DeepSeek 识别中文文本中的语法问题和错别字，并在 `./report` 下生成：
+
+- `xxx-cn-review-report.md`
+
+运行方式：
+
+```powershell
+python review_cn_markdown.py
+```
+
+只处理单个文件：
+
+```powershell
+python review_cn_markdown.py --input ".\markdown\paper-cn.md"
+```
+
+强制重新审查：
+
+```powershell
+python review_cn_markdown.py --input ".\markdown\paper-cn.md" --force
+```
+
+### 6. `knowledge.py`
 
 作用：自动配对 `*-en.md` 和 `*-cn.md`，基于中英文双语内容提取知识点，并在 `./knowledge` 下生成：
 
@@ -184,7 +239,7 @@ python knowledge.py --input ".\markdown\paper-en.md" --force
 
 - `./markdown` 下已经有成对的 `*-en.md` 和 `*-cn.md`
 
-### 5. `run_without_proxy.py`
+### 7. `run_without_proxy.py`
 
 作用：绕过系统代理启动其他脚本。它会在子进程中：
 
@@ -305,13 +360,28 @@ python run_without_proxy.py knowledge.py
 
 - `paper.pdf` -> `paper-en.md` 或 `paper-cn.md`
 - 支持 `--input` 指定单个 PDF
+- 支持 `--start` / `--end` 指定转换页码范围
 - 支持 `--force` 跳过已有输出检查，强制重新转换
+
+### `pdf2html.py`
+
+- `paper.pdf` -> `html/paper.html`
+- 自动重建 `out.html` 索引页
+- 支持 `--input` 指定单个 PDF
+- 支持 `--start` / `--end` 指定转换页码范围
+- 支持 `--force` 即使 HTML 已存在也重新转换
 
 ### `en2cn.py`
 
 - `paper-en.md` -> `paper-cn.md`
 - 支持 `--input` 指定单个英文 Markdown
 - 支持 `--force` 即使 `paper-cn.md` 已存在也重新翻译
+
+### `review_cn_markdown.py`
+
+- `paper-cn.md` -> `report/paper-cn-review-report.md`
+- 支持 `--input` 指定单个中文 Markdown
+- 支持 `--force` 即使报告已存在也重新生成
 
 ### `ocr_pdf2markdown.py`
 

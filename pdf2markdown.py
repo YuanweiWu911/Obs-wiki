@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import re
 import shutil
 from pathlib import Path
@@ -124,18 +125,63 @@ def render_page(page, dpi: int) -> Image.Image:
     return bitmap.to_pil()
 
 
-def ocr_pdf(pdf_path: Path, backend_name: str, ocr_func, dpi: int) -> str:
+def validate_page_range(start: int | None, end: int | None) -> tuple[int | None, int | None]:
+    """校验页码范围参数。"""
+    if start is not None and start < 1:
+        raise ValueError("--start 必须大于等于 1。")
+    if end is not None and end < 1:
+        raise ValueError("--end 必须大于等于 1。")
+    if start is not None and end is not None and start > end:
+        raise ValueError("--start 不能大于 --end。")
+    return start, end
+
+
+def build_page_indices(
+    page_count: int,
+    start_page: int | None = None,
+    end_page: int | None = None,
+) -> list[int]:
+    """根据 1-based 起止页码生成 0-based 页索引列表。"""
+    if page_count <= 0:
+        return []
+
+    start = 1 if start_page is None else start_page
+    end = page_count if end_page is None else end_page
+
+    if start > page_count:
+        raise ValueError(f"--start 超出页数范围：文档共 {page_count} 页。")
+    if end > page_count:
+        end = page_count
+    if start > end:
+        raise ValueError("指定页码范围后没有可处理的页面。")
+
+    return list(range(start - 1, end))
+
+
+def ocr_pdf(
+    pdf_path: Path,
+    backend_name: str,
+    ocr_func,
+    dpi: int,
+    start_page: int | None = None,
+    end_page: int | None = None,
+) -> str:
     """逐页 OCR PDF，并拼接为 Markdown 文本。"""
     pdf = pdfium.PdfDocument(str(pdf_path))
     page_texts: list[str] = []
+    page_indices = build_page_indices(
+        len(pdf),
+        start_page=start_page,
+        end_page=end_page,
+    )
 
-    for page_index in range(len(pdf)):
+    for progress, page_index in enumerate(page_indices, start=1):
         page = pdf[page_index]
         image = preprocess_image(render_page(page, dpi=dpi))
         text = cleanup_ocr_text(ocr_func(image))
         if text:
             page_texts.append(text)
-        print(f"  OCR 第 {page_index + 1}/{len(pdf)} 页完成")
+        print(f"  OCR 第 {progress}/{len(page_indices)} 页完成（原始页码 {page_index + 1}）")
 
     if not page_texts:
         raise RuntimeError(f"OCR 未识别出任何文本: {pdf_path.name}")
@@ -180,14 +226,32 @@ def sample_page_indices(page_count: int, max_pages: int = TEXT_LAYER_SAMPLE_PAGE
     return sorted({round(index * step) for index in range(max_pages)})
 
 
-def inspect_text_layer(pdf_path: Path) -> tuple[bool, str]:
+def sample_from_indices(indices: list[int], max_pages: int = TEXT_LAYER_SAMPLE_PAGES) -> list[int]:
+    """从选定页码中均匀抽样若干页。"""
+    if len(indices) <= max_pages:
+        return indices
+
+    sampled_positions = sample_page_indices(len(indices), max_pages=max_pages)
+    return [indices[position] for position in sampled_positions]
+
+
+def inspect_text_layer(
+    pdf_path: Path,
+    start_page: int | None = None,
+    end_page: int | None = None,
+) -> tuple[bool, str]:
     """判断 PDF 是否更像文本型文档而非纯图片扫描件。"""
     try:
         pdf = pdfium.PdfDocument(str(pdf_path))
     except Exception as exc:
         return True, f"文本层检测失败，先按文本 PDF 处理: {exc}"
 
-    indices = sample_page_indices(len(pdf))
+    selected_indices = build_page_indices(
+        len(pdf),
+        start_page=start_page,
+        end_page=end_page,
+    )
+    indices = sample_from_indices(selected_indices)
     total_chars = 0
     pages_with_text = 0
 
@@ -205,10 +269,69 @@ def inspect_text_layer(pdf_path: Path) -> tuple[bool, str]:
     return True, f"抽样 {sampled} 页检测到 {total_chars} 个文本字符"
 
 
-def extract_text_pdf(pdf_path: Path, converter: MarkItDown) -> str:
+def extract_text_pdf(
+    pdf_path: Path,
+    converter: MarkItDown,
+    start_page: int | None = None,
+    end_page: int | None = None,
+) -> str:
     """使用 MarkItDown 提取文本型 PDF 内容。"""
-    result = converter.convert(str(pdf_path))
-    return (result.text_content or "").strip()
+    if start_page is None and end_page is None:
+        result = converter.convert(str(pdf_path))
+        return (result.text_content or "").strip()
+
+    from markitdown.converters._pdf_converter import (
+        _extract_form_content_from_words,
+        _merge_partial_numbering_lines,
+    )
+    import pdfminer.high_level
+    import pdfplumber
+
+    pdf_bytes = io.BytesIO(pdf_path.read_bytes())
+    markdown_chunks: list[str] = []
+    form_page_count = 0
+
+    with pdfplumber.open(pdf_bytes) as pdf:
+        page_indices = build_page_indices(
+            len(pdf.pages),
+            start_page=start_page,
+            end_page=end_page,
+        )
+        for page_index in page_indices:
+            page = pdf.pages[page_index]
+            page_content = _extract_form_content_from_words(page)
+            if page_content is not None:
+                form_page_count += 1
+                if page_content.strip():
+                    markdown_chunks.append(page_content)
+            else:
+                text = page.extract_text()
+                if text and text.strip():
+                    markdown_chunks.append(text.strip())
+            page.close()
+
+    if form_page_count == 0:
+        pdf_bytes.seek(0)
+        page_indices = build_page_indices(
+            len(pdfium.PdfDocument(str(pdf_path))),
+            start_page=start_page,
+            end_page=end_page,
+        )
+        markdown = pdfminer.high_level.extract_text(pdf_bytes, page_numbers=page_indices)
+    else:
+        markdown = "\n\n".join(markdown_chunks).strip()
+
+    if not markdown:
+        pdf_bytes.seek(0)
+        page_indices = build_page_indices(
+            len(pdfium.PdfDocument(str(pdf_path))),
+            start_page=start_page,
+            end_page=end_page,
+        )
+        markdown = pdfminer.high_level.extract_text(pdf_bytes, page_numbers=page_indices)
+
+    markdown = _merge_partial_numbering_lines(markdown)
+    return markdown.strip()
 
 
 def has_meaningful_text(content: str) -> bool:
@@ -242,6 +365,8 @@ def convert_pdf(
     ocr_backend: str,
     dpi: int,
     force_ocr: bool,
+    start_page: int | None = None,
+    end_page: int | None = None,
 ):
     """自动选择文本提取或 OCR，并写出 Markdown。"""
     print(f"处理: {pdf_path.name}")
@@ -249,15 +374,31 @@ def convert_pdf(
     if force_ocr:
         print("  模式: 强制 OCR")
         backend_name, ocr_func = ensure_ocr_backend(ocr_backend_cache, ocr_backend)
-        content = ocr_pdf(pdf_path, backend_name=backend_name, ocr_func=ocr_func, dpi=dpi)
+        content = ocr_pdf(
+            pdf_path,
+            backend_name=backend_name,
+            ocr_func=ocr_func,
+            dpi=dpi,
+            start_page=start_page,
+            end_page=end_page,
+        )
         save_markdown(pdf_path, content)
         return
 
-    has_text_layer, reason = inspect_text_layer(pdf_path)
+    has_text_layer, reason = inspect_text_layer(
+        pdf_path,
+        start_page=start_page,
+        end_page=end_page,
+    )
     if has_text_layer:
         print(f"  检测结果: 文本型 PDF ({reason})")
         try:
-            content = extract_text_pdf(pdf_path, converter)
+            content = extract_text_pdf(
+                pdf_path,
+                converter,
+                start_page=start_page,
+                end_page=end_page,
+            )
             if has_meaningful_text(content):
                 save_markdown(pdf_path, content)
                 return
@@ -269,7 +410,14 @@ def convert_pdf(
         print(f"  检测结果: 图片型 PDF ({reason})，自动切换到 OCR")
 
     backend_name, ocr_func = ensure_ocr_backend(ocr_backend_cache, ocr_backend)
-    content = ocr_pdf(pdf_path, backend_name=backend_name, ocr_func=ocr_func, dpi=dpi)
+    content = ocr_pdf(
+        pdf_path,
+        backend_name=backend_name,
+        ocr_func=ocr_func,
+        dpi=dpi,
+        start_page=start_page,
+        end_page=end_page,
+    )
     save_markdown(pdf_path, content)
 
 
@@ -297,6 +445,16 @@ def parse_args(force_ocr_default: bool = False) -> argparse.Namespace:
         help="OCR 页面渲染 DPI，默认 220。",
     )
     parser.add_argument(
+        "--start",
+        type=int,
+        help="指定起始页码（从 1 开始）。",
+    )
+    parser.add_argument(
+        "--end",
+        type=int,
+        help="指定结束页码（从 1 开始）。",
+    )
+    parser.add_argument(
         "--force-ocr",
         action="store_true",
         default=force_ocr_default,
@@ -317,6 +475,7 @@ def main(force_ocr_default: bool = False) -> int:
     OUTPUT_DIR.mkdir(exist_ok=True)
 
     try:
+        start_page, end_page = validate_page_range(args.start, args.end)
         pdf_paths = resolve_cli_inputs(args.inputs, args.input)
     except Exception as exc:
         print(f"错误: {exc}")
@@ -359,6 +518,8 @@ def main(force_ocr_default: bool = False) -> int:
                 ocr_backend=args.backend,
                 dpi=args.dpi,
                 force_ocr=args.force_ocr,
+                start_page=start_page,
+                end_page=end_page,
             )
             print()
         except Exception as exc:
